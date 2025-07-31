@@ -46,23 +46,46 @@ def is_queue_empty(r):
         return True  # assume empty on error to avoid hangs
 
 def run_celery_worker():
-    r = redis.from_url(
-        REDIS_URL,
-        ssl_cert_reqs=ssl.CERT_NONE
-    )
-    worker = subprocess.Popen(
-        ["celery", "-A", "tasks", "worker", "--loglevel=info", "--pool=solo"]
-    )
+    # Just trigger SSL load for now — not used directly
+    r = redis.from_url(REDIS_URL, ssl_cert_reqs=ssl.CERT_NONE)
+
+    hostname = f"worker1@{socket.gethostname()}"
+    worker = subprocess.Popen([
+        "celery", "-A", "tasks", "worker",
+        "--loglevel=info", "--pool=solo",
+        f"--hostname={hostname}"
+    ])
+
+    time.sleep(10)  # Let the worker fully initialize
+
     try:
+        idle_seconds = 0
+        max_idle = 30  # seconds
         while True:
-            if is_queue_empty(r):
-                print("Queue empty, stopping worker...")
-                worker.terminate()
-                worker.wait()
-                break
+            active = subprocess.check_output([
+                "celery", "-A", "tasks", "inspect",
+                "--destination", hostname, "active"
+            ])
+            reserved = subprocess.check_output([
+                "celery", "-A", "tasks", "inspect",
+                "--destination", hostname, "reserved"
+            ])
+            queue_length = r.llen(QUEUE_NAME)
+
+            # Check if active and reserved are empty and queue is empty
+            if b'- empty -' in active and b'- empty -' in reserved and queue_length == 0:
+                idle_seconds += 10
+                if idle_seconds >= max_idle:
+                    print(f"No tasks for {idle_seconds} seconds, stopping worker...")
+                    worker.terminate()
+                    worker.wait()
+                    break
+                else:
+                    print(f"No tasks currently, waiting... ({idle_seconds}s)")
             else:
-                print("Tasks still running, waiting 10 seconds...")
-                time.sleep(10)
+                idle_seconds = 0
+                print("Tasks still running or queued, continuing...")
+            time.sleep(10)
     except Exception as e:
         print(f"Error: {e}")
         worker.terminate()
@@ -75,6 +98,6 @@ def sleep_computer():
 # --- Main Routine ---
 if __name__ == "__main__":
     wait_for_wifi()
-    # update_dynamic_prices()
+    update_dynamic_prices()
     run_celery_worker()
     # sleep_computer()
