@@ -50,11 +50,8 @@ def run_celery_worker():
     r = redis.from_url(REDIS_URL, ssl_cert_reqs=ssl.CERT_NONE)
 
     hostname = f"worker1@{socket.gethostname()}"
-    worker = subprocess.Popen([
-        "celery", "-A", "tasks", "worker",
-        "--loglevel=info", "--pool=solo",
-        f"--hostname={hostname}"
-    ])
+    worker = subprocess.Popen(["py", "-m", "celery", "-A", "tasks", "worker", "--loglevel=info", "--pool=solo"])
+
 
     time.sleep(10)  # Let the worker fully initialize
 
