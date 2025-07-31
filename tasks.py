@@ -9,8 +9,15 @@ from dotenv import load_dotenv
 import ssl
 load_dotenv()
 REDIS_URL = os.getenv("REDIS_URL")
+
 celery = Celery('tasks', broker=REDIS_URL, backend=REDIS_URL)
 
+celery.conf.broker_use_ssl = {
+    'ssl_cert_reqs': ssl.CERT_NONE
+}
+celery.conf.redis_backend_use_ssl = {
+    'ssl_cert_reqs': ssl.CERT_NONE
+}
 
 CHOC_EMAIL = os.getenv("CHOC_EMAIL")
 CHOC_PASSWORD = os.getenv("CHOC_PASSWORD")
@@ -61,6 +68,6 @@ def send_invoice_email(order_id, user_email):
 
 
 
-###celery -A tasks worker --loglevel=info --pool=solo
+##celery -A tasks worker --loglevel=info --pool=solo
 
 

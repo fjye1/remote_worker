@@ -37,10 +37,15 @@ def wait_for_wifi():
     print("Wi-Fi not detected. Continuing anyway.")
 
 def is_queue_empty(r):
-    return r.llen(QUEUE_NAME) == 0
+    try:
+        length = r.llen(QUEUE_NAME)
+        print(f"Queue length: {length}")
+        return length == 0
+    except Exception as e:
+        print(f"Redis error checking queue length: {e}")
+        return True  # assume empty on error to avoid hangs
 
 def run_celery_worker():
-    # Add ssl_cert_reqs=CERT_NONE
     r = redis.from_url(
         REDIS_URL,
         ssl_cert_reqs=ssl.CERT_NONE
@@ -50,7 +55,6 @@ def run_celery_worker():
     )
     try:
         while True:
-            print("Pending tasks:", r.lrange(QUEUE_NAME, 0, -1))
             if is_queue_empty(r):
                 print("Queue empty, stopping worker...")
                 worker.terminate()
@@ -71,6 +75,6 @@ def sleep_computer():
 # --- Main Routine ---
 if __name__ == "__main__":
     wait_for_wifi()
-    update_dynamic_prices()
+    # update_dynamic_prices()
     run_celery_worker()
-    sleep_computer()
+    # sleep_computer()
