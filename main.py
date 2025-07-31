@@ -77,18 +77,3 @@ def update_dynamic_prices():
     session.commit()
     print(f"Updated pricing for {len(products)} products at {datetime.utcnow()}")
 
-input("press any key to update prices")
-update_dynamic_prices()
-
-# def countdown(hours=24):
-#     seconds = hours * 3600
-#     while seconds > 0:
-#         mins, secs = divmod(seconds, 60)
-#         print(f"Waiting: {mins} minutes {secs} seconds left", end='\r')
-#         time.sleep(1)
-#         seconds -= 1
-#
-# if __name__ == "__main__":
-#     while True:
-#         update_dynamic_prices()
-#         countdown(24)

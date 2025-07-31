@@ -1,0 +1,76 @@
+import ssl
+import redis
+import os
+import time
+import socket
+import subprocess
+from main import update_dynamic_prices
+from dotenv import load_dotenv
+load_dotenv()
+REDIS_URL = os.getenv("REDIS_URL")
+QUEUE_NAME = "celery"
+
+load_dotenv()
+
+# --- Settings ---
+WIFI_WAIT_SECONDS = 120
+CELERY_TIMEOUT_SECONDS = 60 * 5  # Time to allow Celery to run
+REDIS_QUEUE_CHECK_COMMAND = "celery -A tasks inspect active"
+
+# --- Helpers ---
+def is_connected(host="8.8.8.8", port=53, timeout=3):
+    """Check if we have internet (assumes Wi-Fi is ready)."""
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except socket.error:
+        return False
+
+def wait_for_wifi():
+    print(f"Waiting up to {WIFI_WAIT_SECONDS} seconds for Wi-Fi...")
+    for _ in range(WIFI_WAIT_SECONDS):
+        if is_connected():
+            print("Wi-Fi connected.")
+            return
+        time.sleep(1)
+    print("Wi-Fi not detected. Continuing anyway.")
+
+def is_queue_empty(r):
+    return r.llen(QUEUE_NAME) == 0
+
+def run_celery_worker():
+    # Add ssl_cert_reqs=CERT_NONE
+    r = redis.from_url(
+        REDIS_URL,
+        ssl_cert_reqs=ssl.CERT_NONE
+    )
+    worker = subprocess.Popen(
+        ["celery", "-A", "tasks", "worker", "--loglevel=info", "--pool=solo"]
+    )
+    try:
+        while True:
+            print("Pending tasks:", r.lrange(QUEUE_NAME, 0, -1))
+            if is_queue_empty(r):
+                print("Queue empty, stopping worker...")
+                worker.terminate()
+                worker.wait()
+                break
+            else:
+                print("Tasks still running, waiting 10 seconds...")
+                time.sleep(10)
+    except Exception as e:
+        print(f"Error: {e}")
+        worker.terminate()
+        worker.wait()
+
+def sleep_computer():
+    print("Putting computer to sleep.")
+    subprocess.call("rundll32.exe powrprof.dll,SetSuspendState 0,1,0", shell=True)
+
+# --- Main Routine ---
+if __name__ == "__main__":
+    wait_for_wifi()
+    update_dynamic_prices()
+    run_celery_worker()
+    sleep_computer()

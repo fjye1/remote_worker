@@ -6,6 +6,7 @@ from xhtml2pdf import pisa
 from email.message import EmailMessage
 import smtplib
 from dotenv import load_dotenv
+import ssl
 load_dotenv()
 REDIS_URL = os.getenv("REDIS_URL")
 celery = Celery('tasks', broker=REDIS_URL, backend=REDIS_URL)
@@ -61,3 +62,5 @@ def send_invoice_email(order_id, user_email):
 
 
 ###celery -A tasks worker --loglevel=info --pool=solo
+
+
