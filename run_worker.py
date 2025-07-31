@@ -58,19 +58,11 @@ def run_celery_worker():
     try:
         idle_seconds = 0
         max_idle = 30  # seconds
+
         while True:
-            active = subprocess.check_output([
-                "py", "-m", "celery", "-A", "tasks", "inspect",
-                "--destination", hostname, "active"
-            ])
-            reserved = subprocess.check_output([
-                "py", "-m", "celery", "-A", "tasks", "inspect",
-                "--destination", hostname, "reserved"
-            ])
             queue_length = r.llen(QUEUE_NAME)
 
-            # Check if active and reserved are empty and queue is empty
-            if b'- empty -' in active and b'- empty -' in reserved and queue_length == 0:
+            if queue_length == 0:
                 idle_seconds += 10
                 if idle_seconds >= max_idle:
                     print(f"No tasks for {idle_seconds} seconds, stopping worker...")
@@ -78,10 +70,11 @@ def run_celery_worker():
                     worker.wait()
                     break
                 else:
-                    print(f"No tasks currently, waiting... ({idle_seconds}s)")
+                    print(f"Queue empty, waiting... ({idle_seconds}s)")
             else:
                 idle_seconds = 0
-                print("Tasks still running or queued, continuing...")
+                print(f"{queue_length} task(s) in queue, waiting...")
+
             time.sleep(10)
     except Exception as e:
         print(f"Error: {e}")
