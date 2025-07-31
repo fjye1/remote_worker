@@ -60,11 +60,11 @@ def run_celery_worker():
         max_idle = 30  # seconds
         while True:
             active = subprocess.check_output([
-                "celery", "-A", "tasks", "inspect",
+                "py", "-m", "celery", "-A", "tasks", "inspect",
                 "--destination", hostname, "active"
             ])
             reserved = subprocess.check_output([
-                "celery", "-A", "tasks", "inspect",
+                "py", "-m", "celery", "-A", "tasks", "inspect",
                 "--destination", hostname, "reserved"
             ])
             queue_length = r.llen(QUEUE_NAME)
