@@ -1,6 +1,12 @@
 @echo off
-echo %TIME% Script starting >> "%USERPROFILE%\Desktop\task_log.txt"
+REM Change directory to your local project folder
 cd /d "C:\Users\Frede\PycharmProjects\Remote_Worker"
-echo %TIME% Running script >> "%USERPROFILE%\Desktop\task_log.txt"
-"venv\Scripts\python.exe" run_worker.py >> "%USERPROFILE%\Desktop\worker_log.txt" 2>&1
-echo %TIME% Script completed >> "%USERPROFILE%\Desktop\task_log.txt"
+
+REM Activate your virtual environment
+call .venv\Scripts\activate.bat
+
+REM Run your script
+python run_worker.py
+
+REM Pause so you can see any errors (remove this line when stable)
+pause
