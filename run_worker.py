@@ -91,3 +91,4 @@ if __name__ == "__main__":
     update_dynamic_prices()
     run_celery_worker()
     # sleep_computer()
+    exit(0)
